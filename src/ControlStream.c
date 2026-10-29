@@ -87,6 +87,10 @@ typedef struct _QUEUED_ASYNC_CALLBACK {
             uint16_t controllerNumber;
             uint8_t report[SS_DS_HAPTICS_REPORT_SIZE];
         } dsHaptics;
+        struct {
+            uint16_t controllerNumber;
+            uint8_t pcm[SS_DS_REAR_HAPTICS_SIZE];
+        } dsRearHaptics;
     } data;
     LINKED_BLOCKING_QUEUE_ENTRY entry;
 } QUEUED_ASYNC_CALLBACK, *PQUEUED_ASYNC_CALLBACK;
@@ -145,6 +149,7 @@ static PPLT_CRYPTO_CONTEXT decryptionCtx;
 #define IDX_SET_RGB_LED 11
 #define IDX_DS_ADAPTIVE_TRIGGERS 12
 #define IDX_DS_HAPTICS 13
+#define IDX_DS_REAR_HAPTICS 14
 
 #define CONTROL_STREAM_TIMEOUT_SEC 10
 #define CONTROL_STREAM_LINGER_TIMEOUT_SEC 2
@@ -164,6 +169,7 @@ static const short packetTypesGen3[] = {
     -1,     // Set RGB LED (unused)
     -1,     // Set adaptive triggers (unused)
     -1,     // DualSense haptics (unused)
+    -1,     // USB rear haptics (unused)
 };
 static const short packetTypesGen4[] = {
     0x0606, // Request IDR frame
@@ -180,6 +186,7 @@ static const short packetTypesGen4[] = {
     -1,     // Set RGB LED (unused)
     -1,     // Set adaptive triggers (unused)
     -1,     // DualSense haptics (unused)
+    -1,     // USB rear haptics (unused)
 };
 static const short packetTypesGen5[] = {
     0x0305, // Start A
@@ -196,6 +203,7 @@ static const short packetTypesGen5[] = {
     -1,     // Set RGB LED (unused)
     -1,     // Set adaptive triggers (unused)
     -1,     // DualSense haptics (unused)
+    -1,     // USB rear haptics (unused)
 };
 static const short packetTypesGen7[] = {
     0x0305, // Start A
@@ -212,6 +220,7 @@ static const short packetTypesGen7[] = {
     -1,     // Set RGB LED (unused)
     -1,     // Set adaptive triggers (unused)
     -1,     // DualSense haptics (unused)
+    -1,     // USB rear haptics (unused)
 };
 static const short packetTypesGen7Enc[] = {
     0x0302, // Request IDR frame
@@ -228,6 +237,7 @@ static const short packetTypesGen7Enc[] = {
     0x5502, // Set RGB LED (Sunshine protocol extension)
     0x5503, // Set Adaptive Triggers (Sunshine protocol extension)
     0x5511, // DualSense HD haptics (Sunshine protocol extension)
+    0x5512, // DualSense USB rear haptics PCM (Sunshine protocol extension)
 };
 
 static const char requestIdrFrameGen3[] = { 0, 0 };
@@ -1050,6 +1060,10 @@ static void asyncCallbackThreadFunc(void* context) {
             ListenerCallbacks.setDualSenseHaptics(queuedCb->data.dsHaptics.controllerNumber,
                                                   queuedCb->data.dsHaptics.report);
             break;
+        case IDX_DS_REAR_HAPTICS:
+            ListenerCallbacks.setDualSenseRearHaptics(queuedCb->data.dsRearHaptics.controllerNumber,
+                                                      queuedCb->data.dsRearHaptics.pcm);
+            break;
         default:
             // Unhandled packet type from queueAsyncCallback()
             LC_ASSERT(false);
@@ -1067,7 +1081,8 @@ static bool needsAsyncCallback(unsigned short packetType) {
            packetType == packetTypes[IDX_SET_RGB_LED] ||
            packetType == packetTypes[IDX_HDR_INFO] ||
            packetType == packetTypes[IDX_DS_ADAPTIVE_TRIGGERS] ||
-           packetType == packetTypes[IDX_DS_HAPTICS];
+           packetType == packetTypes[IDX_DS_HAPTICS] ||
+           packetType == packetTypes[IDX_DS_REAR_HAPTICS];
 }
 
 static void queueAsyncCallback(PNVCTL_ENET_PACKET_HEADER_V1 ctlHdr, int packetLength) {
@@ -1132,6 +1147,11 @@ static void queueAsyncCallback(PNVCTL_ENET_PACKET_HEADER_V1 ctlHdr, int packetLe
         BbGet16(&bb, &queuedCb->data.dsHaptics.controllerNumber);
         BbGetBytes(&bb, queuedCb->data.dsHaptics.report, SS_DS_HAPTICS_REPORT_SIZE);
         queuedCb->typeIndex = IDX_DS_HAPTICS;
+    }
+    else if (ctlHdr->type == packetTypes[IDX_DS_REAR_HAPTICS]) {
+        BbGet16(&bb, &queuedCb->data.dsRearHaptics.controllerNumber);
+        BbGetBytes(&bb, queuedCb->data.dsRearHaptics.pcm, SS_DS_REAR_HAPTICS_SIZE);
+        queuedCb->typeIndex = IDX_DS_REAR_HAPTICS;
     }
     else {
         // Unhandled packet type from needsAsyncCallback()
