@@ -480,6 +480,15 @@ typedef void(*ConnListenerSetMotionEventState)(uint16_t controllerNumber, uint8_
 #define DS_EFFECT_LEFT_TRIGGER 0x08
 typedef void(*ConnListenerSetAdaptiveTriggers)(uint16_t controllerNumber, uint8_t eventFlags, uint8_t typeLeft, uint8_t typeRight, uint8_t *left, uint8_t *right);
 
+// Host-to-client DualSense HD haptics extension. The host forwards the complete
+// Bluetooth combined report 0x36 (state + 3 kHz haptics + CRC) built by the
+// virtual controller; the client writes it verbatim to the physical controller.
+#define SS_DS_HAPTICS_PTYPE 0x5511
+#define SS_FF_HAPTICS 0x0200
+#define ML_FF_HAPTICS 0x08
+#define SS_DS_HAPTICS_REPORT_SIZE 398
+typedef void(*ConnListenerSetDualSenseHaptics)(uint16_t controllerNumber, uint8_t *report);
+
 // This callback is invoked to set a controller's RGB LED (if present).
 typedef void(*ConnListenerSetControllerLED)(uint16_t controllerNumber, uint8_t r, uint8_t g, uint8_t b);
 
@@ -497,6 +506,7 @@ typedef struct _CONNECTION_LISTENER_CALLBACKS {
     ConnListenerSetMotionEventState setMotionEventState;
     ConnListenerSetControllerLED setControllerLED;
     ConnListenerSetAdaptiveTriggers setAdaptiveTriggers;
+    ConnListenerSetDualSenseHaptics setDualSenseHaptics;
 } CONNECTION_LISTENER_CALLBACKS, *PCONNECTION_LISTENER_CALLBACKS;
 
 // Use this function to zero the connection callbacks when allocated on the stack or heap
