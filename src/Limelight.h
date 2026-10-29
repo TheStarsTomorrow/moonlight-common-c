@@ -489,6 +489,15 @@ typedef void(*ConnListenerSetAdaptiveTriggers)(uint16_t controllerNumber, uint8_
 #define SS_DS_HAPTICS_REPORT_SIZE 398
 typedef void(*ConnListenerSetDualSenseHaptics)(uint16_t controllerNumber, uint8_t *report);
 
+// Host-to-client USB HD haptics extension. The host forwards 10 ms of raw
+// rear-channel stereo s16 PCM (48 kHz); the client writes it to the physical
+// controller's USB audio endpoint.
+#define SS_DS_REAR_HAPTICS_PTYPE 0x5512
+#define SS_FF_USB_HAPTICS 0x0400
+#define ML_FF_USB_HAPTICS 0x10
+#define SS_DS_REAR_HAPTICS_SIZE 1920
+typedef void(*ConnListenerSetDualSenseRearHaptics)(uint16_t controllerNumber, uint8_t *pcm);
+
 // This callback is invoked to set a controller's RGB LED (if present).
 typedef void(*ConnListenerSetControllerLED)(uint16_t controllerNumber, uint8_t r, uint8_t g, uint8_t b);
 
@@ -507,6 +516,7 @@ typedef struct _CONNECTION_LISTENER_CALLBACKS {
     ConnListenerSetControllerLED setControllerLED;
     ConnListenerSetAdaptiveTriggers setAdaptiveTriggers;
     ConnListenerSetDualSenseHaptics setDualSenseHaptics;
+    ConnListenerSetDualSenseRearHaptics setDualSenseRearHaptics;
 } CONNECTION_LISTENER_CALLBACKS, *PCONNECTION_LISTENER_CALLBACKS;
 
 // Use this function to zero the connection callbacks when allocated on the stack or heap
